@@ -20,20 +20,22 @@ context("Demo", () => {
     context("Open the demo page from the menu", () => {
       beforeEach(() => {
         cy.get("[data-test=menu]")
-          .contains("Demo")
+          .contains("Логин")
           .click();
       });
 
       it("change the URL", () => {
-        cy.url().should("eq", Cypress.config().baseUrl + "/demo");
+        cy.url().should("eq", Cypress.config().baseUrl + "/login");
       });
 
       it("update the page with new content", () => {
-        cy.get("[data-test=content]").contains("Demo");
+        cy.get("[data-test=content]").contains("Login");
       });
 
       it("go back to the homepage", () => {
-        cy.get("[data-test=logo]").click();
+        cy.get("[data-test=menu]")
+          .contains("Главная")
+          .click();
         cy.get("[data-test=content]").contains("Elm Batteries Included");
       });
     });
@@ -51,25 +53,20 @@ context("Demo", () => {
     });
   });
 
-  context("Visit the demo page", () => {
+  context("Visit the login page", () => {
     beforeEach(() => {
-      cy.visit("/demo");
-      cy.get("[data-test=package]").should(
-        "have.attr",
-        "data-result",
-        "not-asked"
-      );
+      cy.visit("/login");
     });
 
     it("display the content related to this URL", () => {
-      cy.get("[data-test=content]").contains("Demo");
+      cy.get("[data-test=content]").contains("Login");
     });
 
     it("decode and show the response", () => {
       cy.server();
 
       // We stub the call with another author
-      cy.route("/.netlify/functions/demo", {
+      cy.route("", {
         name: "elm-batteries",
         url: "https://elm-batteries.netlify.com",
         author: "John Doe",

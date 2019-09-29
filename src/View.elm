@@ -36,17 +36,13 @@ header items =
                 , class "flex items-center"
                 , href "/"
                 ]
-                [ div
-                    [ class "bg-indigo-600 w-4 h-4 rounded-full mr-2" ]
-                    []
-                , p
+                [ p
                     [ class "font-bold uppercase text-sm text-gray-800" ]
-                    [ text "Hello" ]
+                    [ text "Мигратор вариантов" ]
                 ]
             , ul
                 [ attribute "data-test" "menu"
-                , class "flex-grow"
-                , class "flex justify-end"
+                , class "flex flex-grow justify-end"
                 ]
                 items
             ]

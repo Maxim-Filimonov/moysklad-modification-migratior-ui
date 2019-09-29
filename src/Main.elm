@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Auth exposing (Model, init, update, view)
 import Browser
 import Browser.Navigation as Nav
 import Data
@@ -21,10 +22,22 @@ type alias Flags =
 -- MODEL
 
 
+type User
+    = User String
+
+
+type Page
+    = HomePage
+    | LoginPage Auth.Model
+
+
 type alias Model =
     { key : Nav.Key
     , route : Route.Route
     , package : RemoteData Http.Error Data.Package
+    , user : Maybe User
+    , currentPage : Page
+    , auth : Auth.Model
     }
 
 
@@ -34,6 +47,7 @@ type Msg
     | UserClickedLink Browser.UrlRequest
     | UserClickedPackageButton
     | ServerRespondedWithPackage (Result Http.Error Data.Package)
+    | GotAuthMessage Auth.Msg
 
 
 main : Program Flags Model Msg
@@ -74,23 +88,26 @@ view model =
 body : Model -> List (Html Msg)
 body model =
     [ View.header
-        [ navIn "Home" "/"
-        , navIn "Demo" "/demo"
-        , navOut "Documentation" "https://concat.dev/elm"
-        , navOut "Twitter" "https://twitter.com/CedricSoulas"
-        , navOut "Github" "https://github.com/cedricss/elm-batteries"
+        [ navIn "Главная" "/"
+        , navIn "Логин" "/login"
         ]
     , View.container <|
         case model.route of
-            ApiDemo ->
-                viewDemo model
-
             Home ->
                 viewHome model
 
             NotFound ->
                 View.notFound
+
+            Login ->
+                viewLogin model
     ]
+
+
+viewLogin : Model -> List (Html Msg)
+viewLogin model =
+    Auth.view model.auth
+        |> List.map (Html.Styled.map GotAuthMessage)
 
 
 viewHome : Model -> List (Html Msg)
@@ -227,6 +244,13 @@ update msg model =
             , Cmd.none
             )
 
+        GotAuthMessage authMessage ->
+            let
+                ( authModel, cmd ) =
+                    Auth.update authMessage model.auth
+            in
+            ( { model | auth = authModel }, Cmd.map GotAuthMessage cmd )
+
 
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
@@ -237,6 +261,9 @@ init flags url key =
     ( { key = key
       , route = route
       , package = RemoteData.NotAsked
+      , user = Nothing
+      , auth = Auth.init
+      , currentPage = HomePage
       }
     , Cmd.none
     )
