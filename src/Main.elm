@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Auth exposing (Model, init, update, view)
+import Auth exposing (Model, init, isLoggedIn, update, view)
 import Browser
 import Browser.Navigation as Nav
 import Data
@@ -212,7 +212,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         BrowserChangedUrl url ->
-            ( { model | route = Route.fromUrl url }
+            ( { model | route = authenticateRoute url model.auth }
             , Cmd.none
             )
 
@@ -252,18 +252,30 @@ update msg model =
             ( { model | auth = authModel }, Cmd.map GotAuthMessage cmd )
 
 
+authenticateRoute : Url -> Auth.Model -> Route
+authenticateRoute url authModel =
+    if isLoggedIn authModel then
+        Route.fromUrl url
+
+    else
+        Login
+
+
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
+        authModel =
+            Auth.init
+
         route =
-            Route.fromUrl url
+            authenticateRoute url authModel
     in
     ( { key = key
       , route = route
       , package = RemoteData.NotAsked
       , user = Nothing
-      , auth = Auth.init
-      , currentPage = HomePage
+      , auth = authModel
+      , currentPage = LoginPage authModel
       }
     , Cmd.none
     )

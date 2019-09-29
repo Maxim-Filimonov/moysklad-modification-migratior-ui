@@ -1,4 +1,4 @@
-module Auth exposing (Model, Msg, init, update, view)
+module Auth exposing (Model, Msg, init, update, view, isLoggedIn)
 
 import Base64
 import Html.Styled exposing (..)
@@ -7,6 +7,9 @@ import Html.Styled.Events exposing (onClick, onInput)
 import Http
 import RemoteData exposing (RemoteData, WebData)
 
+isLoggedIn: Model -> Bool
+isLoggedIn model = 
+    RemoteData.isSuccess model.loginResponse
 
 type alias Model =
     { username : String
