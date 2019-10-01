@@ -74,13 +74,8 @@ main =
 
 project : { description : String, title : String, url : String }
 project =
-    { title = "Elm Batteries Included!"
+    { title = "Мигратор вариантов"
     , description = """
-        Develop Elm apps with Parcel, Netlify, Tailwind CSS and Cypress.
-        Learn how these delightful web technologies work together.
-        Get started with Elm navigation, routes, remote data and JSON decoder
-      """
-    , url = "https://github.com/cedricss/elm-batteries#elm-batteries-included"
     }
 
 
