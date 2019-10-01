@@ -79,7 +79,7 @@ main =
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "Мигратор вариантов"
+    { title = "Мигратор модификаций"
     , body = [ body model |> div [] |> toUnstyled ]
     }
 
@@ -150,17 +150,17 @@ viewHome model =
                 RemoteData.NotAsked ->
                     [ justText "" ]
 
-                RemoteData.Success variants ->
-                    if List.isEmpty variants then
+                RemoteData.Success modifications ->
+                    if List.isEmpty modifications then
                         [ justText "Все модификации смигрированы" ]
 
                     else
                         let
-                            variantsList =
-                                List.map (\variant -> li [] [ text variant ]) variants
+                            modificationsList =
+                                List.map (\modification -> li [] [ text modification ]) modifications
                         in
                         [ justText "Следующие модификации мигрируются:"
-                        , ul [] variantsList
+                        , ul [] modificationsList
                         ]
 
                 RemoteData.Failure error ->
