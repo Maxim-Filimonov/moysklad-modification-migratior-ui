@@ -14,6 +14,7 @@ import Http
 import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..), WebData)
 import Route exposing (Route(..))
+import Time
 import Url exposing (Url)
 import View exposing (navIn, navOut)
 
@@ -57,6 +58,7 @@ type Msg
     | GotMigrationResponse (WebData ())
     | GotAuthMessage Auth.Msg
     | GotMigrationProgress (WebData (List String))
+    | Tick Time.Posix
 
 
 main : Program Flags Model Msg
@@ -129,7 +131,7 @@ viewHome model =
                         [ href "https://online.moysklad.ru/app/#audit?audit_contextTypeFilter=ALL_JSON_GROUP"
                         , target "_blank"
                         ]
-                        [ text "Следить за прогрессом" ]
+                        [ text "Прогресс в моем складе" ]
                     ]
 
                 RemoteData.Failure error ->
@@ -143,7 +145,7 @@ viewHome model =
         migrationProgress =
             case model.migrationProgress of
                 RemoteData.Loading ->
-                    [ justText "" ]
+                    [ justText "..." ]
 
                 RemoteData.NotAsked ->
                     [ justText "" ]
@@ -334,6 +336,17 @@ update msg model =
         GotMigrationProgress response ->
             ( { model | migrationProgress = response }, Cmd.none )
 
+        Tick newTime ->
+            let
+                isLoading =
+                    RemoteData.isLoading model.migrationProgress
+            in
+            if isLoading then
+                ( model, Cmd.none )
+
+            else
+                ( { model | migrationProgress = Loading }, queryProgress )
+
 
 authenticateRoute : Url -> Auth.Model -> Route
 authenticateRoute url authModel =
@@ -364,10 +377,7 @@ init flags url key =
       , migrationResponse = NotAsked
       , migrationProgress = Loading
       }
-    , Http.get
-        { url = "https://reify-modification-migrator.builtwithdark.com/migrationProgress"
-        , expect = Http.expectJson (RemoteData.fromResult >> GotMigrationProgress) decodeMigrationResult
-        }
+    , queryProgress
     )
 
 
@@ -376,6 +386,14 @@ decodeMigrationResult =
     Decode.list Decode.string
 
 
+queryProgress : Cmd Msg
+queryProgress =
+    Http.get
+        { url = "https://reify-modification-migrator.builtwithdark.com/migrationProgress"
+        , expect = Http.expectJson (RemoteData.fromResult >> GotMigrationProgress) decodeMigrationResult
+        }
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Time.every 10000 Tick
