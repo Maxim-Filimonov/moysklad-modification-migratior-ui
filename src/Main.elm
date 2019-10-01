@@ -72,16 +72,9 @@ main =
 -- VIEW
 
 
-project : { description : String, title : String, url : String }
-project =
-    { title = "Мигратор вариантов"
-    , description = """
-    }
-
-
 view : Model -> Browser.Document Msg
 view model =
-    { title = project.title
+    { title = "Мигратор вариантов"
     , body = [ body model |> div [] |> toUnstyled ]
     }
 
