@@ -120,7 +120,7 @@ viewHome model =
         responseText =
             case model.migrationResponse of
                 RemoteData.Loading ->
-                    [ justText "Загружаеться" ]
+                    [ justText "Загружается" ]
 
                 RemoteData.NotAsked ->
                     [ justText "" ]
@@ -183,8 +183,8 @@ viewHome model =
                 ]
                 []
             ]
-        , div [ class "text-2xl" ] responseText
-        , div [ class "mb-4 border-t-2 border-dashed border-black" ]
+        , div [ class "text-2xl mb-8" ] responseText
+        , div [ class "border-t-2 border-dashed border-black" ]
             migrationProgress
         ]
     ]
