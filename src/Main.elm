@@ -11,6 +11,7 @@ import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (attribute, class, disabled, href, target, type_, value)
 import Html.Styled.Events exposing (onClick, onSubmit)
 import Http
+import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..), WebData)
 import Route exposing (Route(..))
 import Url exposing (Url)
@@ -42,6 +43,7 @@ type alias Model =
     , currentPage : Page
     , auth : Auth.Model
     , migrationResponse : WebData ()
+    , migrationProgress : WebData (List String)
     }
 
 
@@ -54,6 +56,7 @@ type Msg
     | Migrate
     | GotMigrationResponse (WebData ())
     | GotAuthMessage Auth.Msg
+    | GotMigrationProgress (WebData (List String))
 
 
 main : Program Flags Model Msg
@@ -136,6 +139,35 @@ viewHome model =
 
                         _ ->
                             [ justText <| "Неизвестная ошибка" ]
+
+        migrationProgress =
+            case model.migrationProgress of
+                RemoteData.Loading ->
+                    [ justText "" ]
+
+                RemoteData.NotAsked ->
+                    [ justText "" ]
+
+                RemoteData.Success variants ->
+                    if List.isEmpty variants then
+                        [ justText "Все модификации смигрированы" ]
+
+                    else
+                        let
+                            variantsList =
+                                List.map (\variant -> li [] [ text variant ]) variants
+                        in
+                        [ justText "Следующие модификации мигрируются:"
+                        , ul [] variantsList
+                        ]
+
+                RemoteData.Failure error ->
+                    case error of
+                        Http.BadStatus status ->
+                            [ justText <| "Ошибка статуса при проверке прогресса миграции " ++ String.fromInt status ]
+
+                        _ ->
+                            [ justText <| "Неизвестная ошибка при проверке прогресса миграции" ]
     in
     [ div [ class "flex flex-col items-center text-xl justify-center pt-10" ]
         [ form
@@ -150,6 +182,8 @@ viewHome model =
                 []
             ]
         , div [ class "text-2xl" ] responseText
+        , div [ class "mb-4 border-t-2 border-dashed border-black" ]
+            migrationProgress
         ]
     ]
 
@@ -297,6 +331,9 @@ update msg model =
         GotMigrationResponse response ->
             ( { model | migrationResponse = response }, Cmd.none )
 
+        GotMigrationProgress response ->
+            ( { model | migrationProgress = response }, Cmd.none )
+
 
 authenticateRoute : Url -> Auth.Model -> Route
 authenticateRoute url authModel =
@@ -325,9 +362,18 @@ init flags url key =
       , auth = authModel
       , currentPage = LoginPage authModel
       , migrationResponse = NotAsked
+      , migrationProgress = Loading
       }
-    , Cmd.none
+    , Http.get
+        { url = "https://reify-modification-migrator.builtwithdark.com/migrationProgress"
+        , expect = Http.expectJson (RemoteData.fromResult >> GotMigrationProgress) decodeMigrationResult
+        }
     )
+
+
+decodeMigrationResult : Decode.Decoder (List String)
+decodeMigrationResult =
+    Decode.list Decode.string
 
 
 subscriptions : Model -> Sub Msg
