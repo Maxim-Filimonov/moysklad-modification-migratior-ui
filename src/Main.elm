@@ -1,14 +1,17 @@
 module Main exposing (main)
 
+-- import Ports
+-- import LocalStorage
+
 import Auth exposing (Model, init, isLoggedIn, update, view)
 import Browser
 import Browser.Navigation as Nav
 import Data
 import Html.Styled exposing (..)
-import Html.Styled.Attributes exposing (attribute, class, disabled, href)
-import Html.Styled.Events exposing (onClick)
+import Html.Styled.Attributes exposing (attribute, class, disabled, href, target, type_, value)
+import Html.Styled.Events exposing (onClick, onSubmit)
 import Http
-import RemoteData exposing (RemoteData)
+import RemoteData exposing (RemoteData(..), WebData)
 import Route exposing (Route(..))
 import Url exposing (Url)
 import View exposing (navIn, navOut)
@@ -38,6 +41,7 @@ type alias Model =
     , user : Maybe User
     , currentPage : Page
     , auth : Auth.Model
+    , migrationResponse : WebData ()
     }
 
 
@@ -47,6 +51,8 @@ type Msg
     | UserClickedLink Browser.UrlRequest
     | UserClickedPackageButton
     | ServerRespondedWithPackage (Result Http.Error Data.Package)
+    | Migrate
+    | GotMigrationResponse (WebData ())
     | GotAuthMessage Auth.Msg
 
 
@@ -89,7 +95,8 @@ body : Model -> List (Html Msg)
 body model =
     [ View.header
         [ navIn "Главная" "/"
-        , navIn "Логин" "/login"
+
+        -- , navIn "Логин" "/login"
         ]
     , View.container <|
         case model.route of
@@ -112,14 +119,49 @@ viewLogin model =
 
 viewHome : Model -> List (Html Msg)
 viewHome model =
-    [ h1 [] [ text "Elm Batteries Included" ]
-    , p
-        [ class "max-w-2xl text-xl mb-4" ]
-        [ text project.description ]
-    , ul
-        [ class "text-xl" ]
-        [ li [] [ a [ href "/demo" ] [ text "Try the demo ›" ] ]
-        , li [] [ a [ href project.url ] [ text "Read the documentation ›" ] ]
+    let
+        justText : String -> Html Msg
+        justText value =
+            p [] [ text value ]
+
+        responseText =
+            case model.migrationResponse of
+                RemoteData.Loading ->
+                    [ justText "Загружаеться" ]
+
+                RemoteData.NotAsked ->
+                    [ justText "" ]
+
+                RemoteData.Success _ ->
+                    [ justText "Миграция запушена."
+                    , a
+                        [ href "https://online.moysklad.ru/app/#audit?audit_contextTypeFilter=ALL_JSON_GROUP"
+                        , target "_blank"
+                        ]
+                        [ text "Следить за прогрессом" ]
+                    ]
+
+                RemoteData.Failure error ->
+                    case error of
+                        Http.BadStatus status ->
+                            [ justText <| "Ошибка статуса " ++ String.fromInt status ]
+
+                        _ ->
+                            [ justText <| "Неизвестная ошибка" ]
+    in
+    [ div [ class "flex flex-col items-center text-xl justify-center pt-10" ]
+        [ form
+            [ class "mb-4"
+            , onSubmit Migrate
+            ]
+            [ input
+                [ class "bg-blue-500 shadow appearance-none border rounded w-full py-2 px-3 text-white leading-tight focus:outline-none focus:shadow-outline"
+                , Html.Styled.Attributes.type_ "submit"
+                , Html.Styled.Attributes.value "Мигрировать"
+                ]
+                []
+            ]
+        , div [ class "text-2xl" ] responseText
         ]
     ]
 
@@ -251,14 +293,32 @@ update msg model =
             in
             ( { model | auth = authModel }, Cmd.map GotAuthMessage cmd )
 
+        Migrate ->
+            ( { model | migrationResponse = Loading }
+            , Http.request
+                { method = "POST"
+                , headers = []
+                , expect = Http.expectWhatever (RemoteData.fromResult >> GotMigrationResponse)
+                , timeout = Nothing
+                , tracker = Nothing
+                , url = "https://reify-modification-migrator.builtwithdark.com/migrate"
+                , body = Http.emptyBody
+                }
+            )
+
+        GotMigrationResponse response ->
+            ( { model | migrationResponse = response }, Cmd.none )
+
 
 authenticateRoute : Url -> Auth.Model -> Route
 authenticateRoute url authModel =
-    if isLoggedIn authModel then
-        Route.fromUrl url
+    -- if isLoggedIn authModel then
+    Route.fromUrl url
 
-    else
-        Login
+
+
+-- else
+--     Login
 
 
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -276,6 +336,7 @@ init flags url key =
       , user = Nothing
       , auth = authModel
       , currentPage = LoginPage authModel
+      , migrationResponse = NotAsked
       }
     , Cmd.none
     )

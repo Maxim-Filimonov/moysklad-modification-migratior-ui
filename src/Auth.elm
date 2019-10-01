@@ -1,4 +1,4 @@
-module Auth exposing (Model, Msg, init, update, view, isLoggedIn)
+module Auth exposing (JwtToken, Model, Msg, init, isLoggedIn, update, view)
 
 import Base64
 import Html.Styled exposing (..)
@@ -7,14 +7,16 @@ import Html.Styled.Events exposing (onClick, onInput)
 import Http
 import RemoteData exposing (RemoteData, WebData)
 
-isLoggedIn: Model -> Bool
-isLoggedIn model = 
+
+isLoggedIn : Model -> Bool
+isLoggedIn model =
     RemoteData.isSuccess model.loginResponse
+
 
 type alias Model =
     { username : String
     , password : String
-    , loginResponse : WebData JwtToken
+    , loginResponse : WebData ()
     }
 
 
@@ -24,11 +26,11 @@ buildAuthorizationHeader model =
 
 
 type alias JwtToken =
-    String
+    { token : String }
 
 
 type LoginResponse
-    = WebData JwtToken
+    = WebData ()
 
 
 loginRequest : Model -> Cmd Msg
@@ -36,7 +38,7 @@ loginRequest model =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" <| buildAuthorizationHeader model ]
-        , expect = Http.expectString (RemoteData.fromResult >> GotLoginResponse)
+        , expect = Http.expectWhatever (RemoteData.fromResult >> GotLoginResponse)
         , timeout = Nothing
         , tracker = Nothing
         , url = "https://reify-modification-migrator.builtwithdark.com/login"
@@ -48,7 +50,7 @@ type Msg
     = ChangePassword String
     | ChangeLogin String
     | Submit
-    | GotLoginResponse (WebData JwtToken)
+    | GotLoginResponse (WebData ())
 
 
 view : Model -> List (Html Msg)
@@ -62,8 +64,8 @@ view model =
                 RemoteData.NotAsked ->
                     ""
 
-                RemoteData.Success jwt ->
-                    "Логин успешен:" ++ jwt
+                RemoteData.Success _ ->
+                    "Логин успешен"
 
                 RemoteData.Failure error ->
                     case error of
